@@ -24,7 +24,7 @@ build: off
 test_script:
   - ps: >
       mkdir C:\tmp; C:\pacifica\Scripts\activate.ps1;
-      pre-commit run -a;
       pip install .;
+      pre-commit run -a;
       cd tests;
       tox -e "$env:TOX_ENV";
