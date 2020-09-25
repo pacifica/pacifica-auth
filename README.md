@@ -1,9 +1,9 @@
 # Pacifica Template Repository
-[![Build Status](https://travis-ci.org/pacifica/template-repository.svg?branch=master)](https://travis-ci.org/pacifica/template-repository)
-[![Build status](https://ci.appveyor.com/api/projects/status/eg2r1y37yvxi0b5p?svg=true)](https://ci.appveyor.com/project/dmlb2000/template-repository)
-[![Maintainability](https://api.codeclimate.com/v1/badges/f2dba248b1a7966e5a49/maintainability)](https://codeclimate.com/github/pacifica/template-repository/maintainability)
+![PyPi](https://img.shields.io/pypi/v/pacifica-auth.svg)
+![Read the Docs](https://readthedocs.org/projects/pacifica-auth/badge/?version=latest)
+[![Build Status](https://travis-ci.org/pacifica/pacifica-auth.svg?branch=master)](https://travis-ci.org/pacifica/pacifica-auth)
+[![Build status](https://ci.appveyor.com/api/projects/status/0fnidqshlmhgufpl?svg=true)](https://ci.appveyor.com/project/dmlb2000/pacifica-auth)
 
-This repository is to serve as a template for building new
-services the Pacifica way. This repository has pipelines
-for travis and appveyor to build your code and pre-commit
-and pytest to fix your code.
+
+This is a generalized authentication library built around CherryPy,
+SQLAlchemy and Python Social Auth.

@@ -6,18 +6,24 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name='pacifica-service',
+    name='pacifica-auth',
     use_scm_version=True,
     setup_requires=['setuptools_scm'],
-    description='Pacifica Example Library',
-    url='https://github.com/pacifica/template-repository/',
+    description='Pacifica Authentication Library',
+    url='https://github.com/pacifica/pacifica-auth/',
     long_description=open(path.join(
         path.abspath(path.dirname(__file__)),
         'README.md')).read(),
     long_description_content_type='text/markdown',
     author='David Brown',
     author_email='dmlb2000@gmail.com',
-    packages=find_packages(),
+    packages=find_packages(exclude='tests'),
     namespace_packages=['pacifica'],
-    install_requires=[]
+    install_requires=[
+        'cherrypy',
+        'sqlalchemy',
+        'social-auth-core',
+        'social-auth-app-cherrypy',
+        'jinja2',
+    ]
 )
