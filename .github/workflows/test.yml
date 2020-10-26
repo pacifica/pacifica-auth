@@ -1,4 +1,6 @@
 ---
+name: Lint and Test
+on: [push, pull_request]
 jobs:
   lint:
     runs-on: ${{ matrix.os }}
