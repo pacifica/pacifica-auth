@@ -68,6 +68,18 @@ def pacifica_auth_arguments(parser):
         '--app-dir', dest='app_dir', type=str, default='app',
         help='ReactJS App directory to serve'
     )
+    parser.add_argument(
+        '--ssl-private-key', dest='ssl_private_key', type=str, default=None,
+        help='OpenSSL private key file.'
+    )
+    parser.add_argument(
+        '--ssl-certificate', dest='ssl_certificate', type=str, default=None,
+        help='OpenSSL certificate file.'
+    )
+    parser.add_argument(
+        '--ssl-certificate-chain', dest='ssl_certificate_chain', type=str,
+        default=None, help='OpenSSL certificate chain file.'
+    )
 
 
 def social_settings(args, user_class, user_import_path):
@@ -103,6 +115,9 @@ def social_settings(args, user_class, user_import_path):
         'tools.db.on': True,
         'tools.authenticate.on': True,
     })
+    for ssl_config_key in ['ssl_private_key', 'ssl_certificate', 'ssl_certificate_chain']:
+        if getattr(args, ssl_config_key, False):
+            cherrypy.config.update({'cherrypy.server.{}'.format(ssl_config_key): getattr(args, ssl_config_key)})
     cherrypy.tools.jinja2env = Environment(
         loader=FileSystemLoader(join(dirname(__file__), 'templates'))
     )
