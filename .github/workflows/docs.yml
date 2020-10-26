@@ -2,7 +2,7 @@
 name: Test the Docs
 on: [push, pull_request]
 jobs:
-  lint:
+  docs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
