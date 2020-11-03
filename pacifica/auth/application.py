@@ -117,7 +117,7 @@ def social_settings(args, user_class, user_import_path):
     })
     for ssl_config_key in ['ssl_private_key', 'ssl_certificate', 'ssl_certificate_chain']:
         if getattr(args, ssl_config_key, False):
-            cherrypy.config.update({'cherrypy.server.{}'.format(ssl_config_key): getattr(args, ssl_config_key)})
+            cherrypy.config.update({'server.{}'.format(ssl_config_key): getattr(args, ssl_config_key)})
     cherrypy.tools.jinja2env = Environment(
         loader=FileSystemLoader(join(dirname(__file__), 'templates'))
     )
