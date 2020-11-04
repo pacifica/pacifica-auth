@@ -1,15 +1,18 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """Base application module."""
-from os import makedirs
+from argparse import ArgumentParser
+from os import makedirs, getenv
 from os.path import isdir, join, dirname
 import json
+from configparser import ConfigParser
 import importlib
 import cherrypy
 from jinja2 import Environment, FileSystemLoader
-from sqlalchemy import create_engine
 from .satool import SATool
 from .saplugin import SAEnginePlugin
+from .config import common_config
+from .root import Root
 
 
 def error_page_default(**kwargs):
@@ -24,65 +27,25 @@ def session_commit():
     cherrypy.session.save()
 
 
-def check_sa_module_class(args):
+def check_sa_module_class(sa_module, sa_class):
     """Check the combination of module and class."""
     try:
-        sa_module = importlib.import_module('social_core.backends.{}'.format(args.sa_module))
+        sa_module = importlib.import_module('social_core.backends.{}'.format(sa_module))
     except ImportError as ex:
-        raise ValueError('Module {} is not a social core backend'.format(args.sa_module)) from ex
-    if not getattr(sa_module, args.sa_class, None):
-        raise ValueError('Social core backend module {} has no class {}'.format(args.sa_module, args.sa_class))
-
-
-def check_sa_settings(obj_str):
-    """Verify social auth settings."""
-    if '=' not in obj_str:
-        raise ValueError('{} must contain the "=" character'.format(obj_str))
-    parts = obj_str.split('=')
-    return 'SOCIAL_AUTH_{}'.format(parts[0].upper()), parts[1]
+        raise ValueError('Module {} is not a social core backend'.format(sa_module)) from ex
+    if not getattr(sa_module, sa_class, None):
+        raise ValueError('Social core backend module {} has no class {}'.format(sa_module, sa_class))
 
 
 def pacifica_auth_arguments(parser):
     """Add Pacifica authentication command line arguments."""
     parser.add_argument(
-        '--session-dir', dest='session_dir', default='sessions',
-        help='Sesion directory for writing'
-    )
-    parser.add_argument(
-        '--db-url', dest='engine', type=create_engine, default='sqlite:///database.sqlite3',
-        help='Database url to connect to'
-    )
-    parser.add_argument(
-        '--social-module', dest='sa_module', type=str,
-        default='github', help='Social Core backend module name'
-    )
-    parser.add_argument(
-        '--social-class', dest='sa_class', type=str, default='GithubOAuth2',
-        help='Social Core backend auth class'
-    )
-    parser.add_argument(
-        '--social-setting', dest='sa_settings', type=check_sa_settings,
-        help='Social Core settings', action='append', default=[]
-    )
-    parser.add_argument(
-        '--app-dir', dest='app_dir', type=str, default='app',
-        help='ReactJS App directory to serve'
-    )
-    parser.add_argument(
-        '--ssl-private-key', dest='ssl_private_key', type=str, default=None,
-        help='OpenSSL private key file.'
-    )
-    parser.add_argument(
-        '--ssl-certificate', dest='ssl_certificate', type=str, default=None,
-        help='OpenSSL certificate file.'
-    )
-    parser.add_argument(
-        '--ssl-certificate-chain', dest='ssl_certificate_chain', type=str,
-        default=None, help='OpenSSL certificate chain file.'
+        '-c', '--config', metavar='CONFIG', type=str,
+        default=getenv('CONFIG_FILE', 'config.ini'), dest='config', help='ingest config file'
     )
 
 
-def social_settings(args, user_class, user_import_path):
+def social_settings(configparser: ConfigParser, user_class, user_import_path):
     """Setup the social settings for pacifica auth."""
     def load_user():
         """Load the user into the request."""
@@ -98,29 +61,74 @@ def social_settings(args, user_class, user_import_path):
         'SOCIAL_AUTH_LOGIN_REDIRECT_URL': '/',
         'SOCIAL_AUTH_TRAILING_SLASH': True,
         'SOCIAL_AUTH_AUTHENTICATION_BACKENDS': (
-            'social_core.backends.{}.{}'.format(args.sa_module, args.sa_class),
+            'social_core.backends.{}.{}'.format(
+                configparser.get('cherrypy', 'social_module'),
+                configparser.get('cherrypy', 'social_class')
+            ),
         )
     })
-    for key, value in args.sa_settings:
-        cherrypy.config.update({key: value})
-    check_sa_module_class(args)
-    SAEnginePlugin(cherrypy.engine, args.engine.url).subscribe()
-    if not isdir(args.session_dir):
-        makedirs(args.session_dir)
+    for key in configparser.options('social_settings'):
+        cherrypy.config.update({
+            'SOCIAL_AUTH_{}'.format(key.upper()): configparser.get('social_settings', key)
+        })
+    check_sa_module_class(
+        configparser.get('cherrypy', 'social_module'),
+        configparser.get('cherrypy', 'social_class')
+    )
+    SAEnginePlugin(cherrypy.engine, configparser.get('database', 'db_url')).subscribe()
+    if not isdir(configparser.get('cherrypy', 'session_dir')):
+        makedirs(configparser.get('cherrypy', 'session_dir'))
     cherrypy.config.update({
+        'server.socket_host': configparser.get('cherrypy', 'host'),
+        'server.socket_port': configparser.getint('cherrypy', 'port'),
         'tools.sessions.on': True,
         'tools.sessions.storage_class': cherrypy.lib.sessions.FileSession,
-        'tools.sessions.storage_path': args.session_dir,
+        'tools.sessions.storage_path': configparser.get('cherrypy', 'session_dir'),
         'tools.sessions.timeout': 60,
         'tools.db.on': True,
         'tools.authenticate.on': True,
     })
     for ssl_config_key in ['ssl_private_key', 'ssl_certificate', 'ssl_certificate_chain']:
-        if getattr(args, ssl_config_key, False):
-            cherrypy.config.update({'server.{}'.format(ssl_config_key): getattr(args, ssl_config_key)})
+        if configparser.get('cherrypy', ssl_config_key):
+            cherrypy.config.update({
+                'server.{}'.format(ssl_config_key): configparser.get('cherrypy', ssl_config_key)
+            })
     cherrypy.tools.jinja2env = Environment(
         loader=FileSystemLoader(join(dirname(__file__), 'templates'))
     )
     cherrypy.tools.db = SATool()
     cherrypy.tools.authenticate = cherrypy.Tool('before_handler', load_user)
     cherrypy.tools.session = cherrypy.Tool('on_end_resource', session_commit)
+
+
+def command_setup(argv, description, user_class, user_import_path, config_callback=None):
+    """Common setup for commands to execute."""
+    parser = ArgumentParser(description=description)
+    pacifica_auth_arguments(parser)
+    args = parser.parse_args(argv)
+    configparser = ConfigParser()
+    common_config(configparser)
+    if callable(config_callback):
+        config_callback(configparser)
+    configparser.read(args.config)
+    social_settings(configparser, user_class, user_import_path)
+    return configparser
+
+
+# pylint: disable=too-many-arguments
+def quickstart(argv, description, user_class, user_import_path, swagger_path, config_callback=None):
+    """Simple wrapper around cherrypy quickstart."""
+    configparser = command_setup(argv, description, user_class, user_import_path, config_callback)
+    cherrypy.quickstart(
+        Root(configparser.get('cherrypy', 'social_module'), configparser.get('cherrypy', 'app_dir')),
+        '/',
+        config={
+            '/': {},
+            '/swagger.yaml': {
+                'tools.staticfile.on': True,
+                'tools.staticfile.filename': join(
+                    swagger_path, 'swagger.yaml'
+                ),
+            },
+        }
+    )

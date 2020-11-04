@@ -3,7 +3,7 @@
 """Pacifica Authentication Module."""
 import functools
 import cherrypy
-from .application import pacifica_auth_arguments, error_page_default, social_settings
+from .application import error_page_default, quickstart, command_setup
 
 
 def auth_session(func):
@@ -19,7 +19,7 @@ def auth_session(func):
 
 __all__ = [
     'auth_session',
-    'pacifica_auth_arguments',
+    'quickstart',
     'error_page_default',
-    'social_settings'
+    'command_setup'
 ]
