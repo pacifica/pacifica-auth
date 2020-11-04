@@ -3,11 +3,11 @@
 """Test the example module."""
 from os import getenv, unlink
 from os.path import isfile
-import argparse
+from sqlalchemy import create_engine
 import cherrypy
 from cherrypy.test import helper
 import requests
-from pacifica.auth import auth_session, pacifica_auth_arguments, error_page_default, social_settings
+from pacifica.auth import auth_session, error_page_default, command_setup
 from pacifica.auth.user_model import User, Base
 from pacifica.auth.root import Root
 
@@ -39,32 +39,27 @@ class TestExampleAuth(helper.CPWebCase):
     @classmethod
     def setup_server(cls):
         """Setup the server configs."""
-        _parser = argparse.ArgumentParser(description='testing command line')
-        pacifica_auth_arguments(_parser)
-        cls._args = _parser.parse_args([
-            '--social-setting=github_key={}'.format(getenv('PA_TESTING_GITHUB_KEY', '')),
-            '--social-setting=github_secret={}'.format(getenv('PA_TESTING_GITHUB_SECRET', ''))
-        ])
-        social_settings(cls._args, User, 'pacifica.auth.user_model.User')
-        cherrypy.config.update({
-            'server.socket_host': cls.HOST,
-            'server.socket_port': cls.PORT
-        })
         cherrypy.tree.mount(HelloWorld(), '/hello', config={
             '/': {
                 'error_page.default': error_page_default,
                 'request.dispatch': cherrypy.dispatch.MethodDispatcher()
             }
         })
-        cherrypy.tree.mount(Root(cls._args.sa_module, cls._args.app_dir), '/', config={'/': {}})
+        configparser = command_setup([], 'Some Test Description', User, 'pacifica.auth.user_model.User')
+        configparser.set('social_settings', 'github_key', getenv('PA_TESTING_GITHUB_KEY', ''))
+        configparser.set('social_settings', 'github_secret', getenv('PA_TESTING_GITHUB_SECRET', ''))
+        cherrypy.tree.mount(Root(configparser.get('cherrypy', 'social_module'),
+                                 configparser.get('cherrypy', 'app_dir')), '/', config={'/': {}})
+        cls._configparser = configparser
 
     def setUp(self) -> None:
         """Setup the test by creating database schema."""
-        Base.metadata.create_all(self._args.engine)
+        engine = create_engine(self._configparser.get('database', 'db_url'))
+        Base.metadata.create_all(engine)
         # this needs to be imported after cherrypy settings are applied.
         # pylint: disable=import-outside-toplevel
         from social_cherrypy.models import SocialBase
-        SocialBase.metadata.create_all(self._args.engine)
+        SocialBase.metadata.create_all(engine)
 
     def tearDown(self) -> None:
         """Tear down the test by deleting the database."""

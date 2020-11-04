@@ -10,6 +10,7 @@ Authentication Python Module
    auth.saplugin
    auth.satool
    auth.user_model
+   auth.config
 
 .. automodule:: pacifica.auth
    :members:
