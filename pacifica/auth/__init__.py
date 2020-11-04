@@ -3,7 +3,7 @@
 """Pacifica Authentication Module."""
 import functools
 import cherrypy
-from .application import error_page_default, quickstart, command_setup
+from .application import error_page_default, quickstart, command_setup, create_argparser, create_configparser
 
 
 def auth_session(func):
@@ -21,5 +21,7 @@ __all__ = [
     'auth_session',
     'quickstart',
     'error_page_default',
-    'command_setup'
+    'command_setup',
+    'create_argparser',
+    'create_configparser'
 ]

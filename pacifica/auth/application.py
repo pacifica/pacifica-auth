@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """Base application module."""
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from os import makedirs, getenv
 from os.path import isdir, join, dirname
 import json
@@ -101,24 +101,42 @@ def social_settings(configparser: ConfigParser, user_class, user_import_path):
     cherrypy.tools.session = cherrypy.Tool('on_end_resource', session_commit)
 
 
-def command_setup(argv, description, user_class, user_import_path, config_callback=None):
-    """Common setup for commands to execute."""
-    parser = ArgumentParser(description=description)
-    pacifica_auth_arguments(parser)
-    args = parser.parse_args(argv)
+def create_configparser(args: Namespace, config_callback=None):
+    """Create the config parser and return it calling callback if given."""
     configparser = ConfigParser()
     common_config(configparser)
     if callable(config_callback):
         config_callback(configparser)
     configparser.read(args.config)
+    return configparser
+
+
+def create_argparser(description, parser_callback=None):
+    """Create the argparser and return it."""
+    parser = ArgumentParser(description=description)
+    pacifica_auth_arguments(parser)
+    if callable(parser_callback):
+        parser_callback(parser)
+    return parser
+
+
+# pylint: disable=too-many-arguments
+def command_setup(argv, description, user_class, user_import_path, config_callback=None, parser_callback=None):
+    """Common setup for commands to execute."""
+    parser = create_argparser(description, parser_callback)
+    args = parser.parse_args(argv)
+    configparser = create_configparser(args, config_callback)
     social_settings(configparser, user_class, user_import_path)
     return configparser
 
 
 # pylint: disable=too-many-arguments
-def quickstart(argv, description, user_class, user_import_path, swagger_path, config_callback=None):
+def quickstart(
+    argv, description, user_class, user_import_path,
+    swagger_path, config_callback=None, parser_callback=None
+):
     """Simple wrapper around cherrypy quickstart."""
-    configparser = command_setup(argv, description, user_class, user_import_path, config_callback)
+    configparser = command_setup(argv, description, user_class, user_import_path, config_callback, parser_callback)
     cherrypy.quickstart(
         Root(configparser.get('cherrypy', 'social_module'), configparser.get('cherrypy', 'app_dir')),
         '/',
