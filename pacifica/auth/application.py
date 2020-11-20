@@ -8,6 +8,7 @@ import json
 from configparser import ConfigParser
 import importlib
 import cherrypy
+from cherrypy import quickstart as cp_quickstart
 from jinja2 import Environment, FileSystemLoader
 from .satool import SATool
 from .saplugin import SAEnginePlugin
@@ -137,7 +138,7 @@ def quickstart(
 ):
     """Simple wrapper around cherrypy quickstart."""
     configparser = command_setup(argv, description, user_class, user_import_path, config_callback, parser_callback)
-    cherrypy.quickstart(
+    cp_quickstart(
         Root(configparser.get('cherrypy', 'social_module'), configparser.get('cherrypy', 'app_dir')),
         '/',
         config={
