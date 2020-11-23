@@ -26,6 +26,8 @@ def common_config(configparser: ConfigParser):
         'CHERRYPY_SOCIAL_MODULE', 'github'))
     configparser.set('cherrypy', 'social_class', getenv(
         'CHERRYPY_SOCIAL_CLASS', 'GithubOAuth2'))
+    configparser.set('cherrypy', 'social_path', getenv(
+        'CHERRYPY_SOCIAL_PATH', 'social_core.backends'))
     configparser.add_section('social_settings')
     configparser.add_section('database')
     configparser.set('database', 'db_url', getenv(
