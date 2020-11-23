@@ -62,7 +62,8 @@ def social_settings(configparser: ConfigParser, user_class, user_import_path):
         'SOCIAL_AUTH_LOGIN_REDIRECT_URL': '/',
         'SOCIAL_AUTH_TRAILING_SLASH': True,
         'SOCIAL_AUTH_AUTHENTICATION_BACKENDS': (
-            'social_core.backends.{}.{}'.format(
+            '{}.{}.{}'.format(
+                configparser.get('cherrypy', 'social_path'),
                 configparser.get('cherrypy', 'social_module'),
                 configparser.get('cherrypy', 'social_class')
             ),
