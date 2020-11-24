@@ -10,11 +10,15 @@ class SAModuleClassTest(TestCase):
 
     def test_happy(self):
         """Test the happy path."""
-        self.assertEqual(check_sa_module_class('github', 'GithubOAuth2'), None, 'Happy path must not return anything')
+        self.assertEqual(
+            check_sa_module_class('social_core.backends', 'github', 'GithubOAuth2'),
+            None,
+            'Happy path must not return anything'
+        )
 
     def test_module_error(self):
         """Test a bad module name."""
         with self.assertRaises(ValueError):
-            check_sa_module_class('module_not_there', 'blah')
+            check_sa_module_class('social_core.backends', 'module_not_there', 'blah')
         with self.assertRaises(ValueError):
-            check_sa_module_class('github', 'class_not_there')
+            check_sa_module_class('social_core.backends', 'github', 'class_not_there')

@@ -28,10 +28,10 @@ def session_commit():
     cherrypy.session.save()
 
 
-def check_sa_module_class(sa_module, sa_class):
+def check_sa_module_class(sa_path, sa_module, sa_class):
     """Check the combination of module and class."""
     try:
-        sa_module = importlib.import_module('social_core.backends.{}'.format(sa_module))
+        sa_module = importlib.import_module('{}.{}'.format(sa_path, sa_module))
     except ImportError as ex:
         raise ValueError('Module {} is not a social core backend'.format(sa_module)) from ex
     if not getattr(sa_module, sa_class, None):
@@ -74,6 +74,7 @@ def social_settings(configparser: ConfigParser, user_class, user_import_path):
             'SOCIAL_AUTH_{}'.format(key.upper()): configparser.get('social_settings', key)
         })
     check_sa_module_class(
+        configparser.get('cherrypy', 'social_path'),
         configparser.get('cherrypy', 'social_module'),
         configparser.get('cherrypy', 'social_class')
     )
